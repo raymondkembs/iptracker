@@ -1,5 +1,6 @@
 {
   "name": "frontendmentor15",
+  "homepage": "https://raymondkembs.github.io/iptracker",
   "version": "0.1.0",
   "private": true,
   "dependencies": {

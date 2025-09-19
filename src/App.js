@@ -26,6 +26,8 @@ function App() {
   const [deviceId, setDeviceId] = useState('device123'); 
   const [sharing, setSharing] = useState(false);
   const [mode, setMode] = useState(null); 
+  const [allLocations, setAllLocations] = useState({});
+
 
 
   const enforceDeviceLimitAndSave = async (deviceId, coords) => {
@@ -129,24 +131,44 @@ function App() {
   //   return () => unsubscribe();
   // }, [deviceId]);
 // -----------------------------------------------------------------UP
+// ------------------Replaced----------------------------------
+// useEffect(() => {
+//   if (mode !== 'track') return;
+
+//   // Sanitize deviceId to remove invalid Firebase path characters
+//   const safeDeviceId = deviceId.replace(/\./g, '_');
+
+//   const targetRef = ref(database, `locations/${safeDeviceId}`);
+//   const unsubscribe = onValue(targetRef, (snapshot) => {
+//     const data = snapshot.val();
+//     if (data) {
+//       setTargetCoords(data);
+//     } else {
+//       setTargetCoords(null);
+//     }
+//   });
+
+//   return () => unsubscribe();
+// }, [mode, deviceId]);
+// -------------------Replaced------------------------------------
+
 useEffect(() => {
   if (mode !== 'track') return;
 
-  // Sanitize deviceId to remove invalid Firebase path characters
-  const safeDeviceId = deviceId.replace(/\./g, '_');
-
-  const targetRef = ref(database, `locations/${safeDeviceId}`);
-  const unsubscribe = onValue(targetRef, (snapshot) => {
+  const locationsRef = ref(database, 'locations');
+  const unsubscribe = onValue(locationsRef, (snapshot) => {
     const data = snapshot.val();
     if (data) {
-      setTargetCoords(data);
+      setAllLocations(data);
     } else {
-      setTargetCoords(null);
+      setAllLocations({});
     }
   });
 
   return () => unsubscribe();
-}, [mode, deviceId]);
+}, [mode]);
+
+
 
   return (
     <div className="App">
@@ -190,7 +212,9 @@ useEffect(() => {
       </div>
 
       <div className="box2">
+        
         <MapContainer center={[0, 0]} zoom={2} className="map">
+          
           {(targetCoords || currentCoords) && (
             <RecenterMap coords={targetCoords || currentCoords} />
           )}
@@ -199,11 +223,22 @@ useEffect(() => {
             attribution="&copy; OpenStreetMap contributors"
           />
 
-          {currentCoords && (
+          {/* {currentCoords && (
+            console.log('All Locations:', allLocations),
+
             <Marker position={currentCoords}>
               <Popup>You (This device)</Popup>
             </Marker>
-          )}
+          )} */}
+         
+            {Object.entries(allLocations)
+              .filter(([_, loc]) => loc?.lat && loc?.lng)
+              .map(([id, loc]) => (
+                console.log('All Locations:', allLocations),
+                <Marker position={[loc.lat, loc.lng]} key={id}>
+                  <Popup>{id}</Popup>
+                </Marker>
+            ))}
 
           {targetCoords && (
             <Marker position={targetCoords}>
@@ -218,6 +253,38 @@ useEffect(() => {
 }
 
 export default App;
+
+// *****************************************************
+
+
+{/* <MapContainer center={[0, 0]} zoom={2} className="map">
+  {(Object.keys(allLocations).length > 0 || currentCoords) && (
+    <RecenterMap coords={currentCoords || Object.values(allLocations)[0]} />
+  )}
+  <TileLayer
+    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    attribution="&copy; OpenStreetMap contributors"
+  />
+
+
+  {currentCoords && (
+    <Marker position={[currentCoords.lat, currentCoords.lng]}>
+      <Popup>You (This device)</Popup>
+    </Marker>
+  )}
+
+  {Object.entries(allLocations)
+    .filter(([_, loc]) => loc?.lat && loc?.lng)
+    .map(([id, loc]) => (
+      <Marker position={[loc.lat, loc.lng]} key={id}>
+        <Popup>{id}</Popup>
+      </Marker>
+    ))}
+</MapContainer> */}
+
+
+
+// ********************************************************
 
 
 // import './App.css';
