@@ -6,6 +6,8 @@ import L from 'leaflet';
 import { database, ref, set, onValue } from './firebaseConfig';
 import { get, remove } from 'firebase/database';
 import { useMap } from 'react-leaflet';
+import 'leaflet-routing-machine';
+import ManualRoute from './ManualRoute';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -17,6 +19,34 @@ L.Icon.Default.mergeOptions({
 function RecenterMap({ coords }) {
   const map = useMap();
   map.setView(coords);
+  return null;
+}
+
+function RoutePath({ from, to }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!from || !to) return;
+
+    const routingControl = L.Routing.control({
+      waypoints: [
+        L.latLng(from.lat, from.lng),
+        L.latLng(to.lat, to.lng)
+      ],
+      lineOptions: {
+        styles: [{ color: 'blue', weight: 4 }]
+      },
+      show: false,
+      addWaypoints: false,
+      draggableWaypoints: false,
+      routeWhileDragging: false,
+      createMarker: () => null, // hides extra default markers
+      router: L.Routing.openrouteservice('at_EDYpf03rGcLW1cDQRS18PDvs7p3Yi')
+    }).addTo(map);
+
+    return () => map.removeControl(routingControl);
+  }, [from, to, map]);
+
   return null;
 }
 
@@ -71,6 +101,7 @@ function App() {
           lng: pos.coords.longitude,
         };
         setCurrentCoords(coords);
+        console.log("📍 My location (currentCoords):", coords);
         const safeDeviceId = deviceId.replace(/\./g, '_');
         set(ref(database, `locations/${safeDeviceId}`), coords);
       },
@@ -95,6 +126,7 @@ function App() {
         lng: pos.coords.longitude,
       };
       setCurrentCoords(coords);
+      console.log("📍 My location (currentCoords):", coords);
       enforceDeviceLimitAndSave(deviceId, coords);
     },
     (err) => {
@@ -168,7 +200,16 @@ useEffect(() => {
   return () => unsubscribe();
 }, [mode]);
 
-
+// useEffect(() => {
+//   // If there's no target device yet, set a fixed test target
+//   if (!targetCoords && currentCoords) {
+//     setTargetCoords({
+//       lat: -1.252,
+//       lng: 36.866
+//     });
+//     console.log("🎯 Test targetCoords:", { lat: -1.252, lng: 36.866 });
+//   }
+// }, [currentCoords, targetCoords]);
 
   return (
     <div className="App">
@@ -230,6 +271,17 @@ useEffect(() => {
               <Popup>You (This device)</Popup>
             </Marker>
           )} */}
+
+            {/* {currentCoords && targetCoords && (
+              <RoutePath from={currentCoords} to={targetCoords} />
+            )} */}
+            {/* {currentCoords && targetCoords && (
+              <RoutePath from={currentCoords} to={targetCoords} />
+            )} */}
+
+              {currentCoords && targetCoords && (
+                <ManualRoute from={currentCoords} to={targetCoords} />
+              )}
          
             {Object.entries(allLocations)
               .filter(([_, loc]) => loc?.lat && loc?.lng)
@@ -253,6 +305,13 @@ useEffect(() => {
 }
 
 export default App;
+
+// START HERE WITH CHATGPT: Totally fair question — it sounds like a lot of work at first, but in reality:
+
+// ✅ Drawing a route in Leaflet using a Polyline is actually very simple — especially if you’re using an external routing API like OpenRouteService, Mapbox, or OSRM.
+
+// You're essentially doing 3 steps:
+
 
 // *****************************************************
 
