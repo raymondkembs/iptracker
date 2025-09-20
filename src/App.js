@@ -9,6 +9,24 @@ import { useMap } from 'react-leaflet';
 import 'leaflet-routing-machine';
 import ManualRoute from './ManualRoute';
 
+const userIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+const targetIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
@@ -200,16 +218,16 @@ useEffect(() => {
   return () => unsubscribe();
 }, [mode]);
 
-useEffect(() => {
-  // If there's no target device yet, set a fixed test target
-  if (!targetCoords && currentCoords) {
-    setTargetCoords({
-      lat: -1.252,
-      lng: 36.866
-    });
-    console.log("🎯 Test targetCoords:", { lat: -1.252, lng: 36.866 });
-  }
-}, [currentCoords, targetCoords]);
+// useEffect(() => {
+//   // If there's no target device yet, set a fixed test target
+//   if (!targetCoords && currentCoords) {
+//     setTargetCoords({
+//       lat: -1.252,
+//       lng: 36.866
+//     });
+//     console.log("🎯 Test targetCoords:", { lat: -1.252, lng: 36.866 });
+//   }
+// }, [currentCoords, targetCoords]);
 
   return (
     <div className="App">
@@ -279,8 +297,22 @@ useEffect(() => {
               <RoutePath from={currentCoords} to={targetCoords} />
             )} */}
 
-              {currentCoords && targetCoords && (
+              {/* {currentCoords && targetCoords && (
                 <ManualRoute from={currentCoords} to={targetCoords} />
+              )} */}
+
+              {currentCoords && targetCoords && (
+                <>
+                  <ManualRoute from={currentCoords} to={targetCoords} />
+
+                  <Marker position={currentCoords} icon={userIcon}>
+                    <Popup>You (This Device)</Popup>
+                  </Marker>
+
+                  <Marker position={targetCoords} icon={targetIcon}>
+                    <Popup>Target Device ({deviceId})</Popup>
+                  </Marker>
+                </>
               )}
          
             {Object.entries(allLocations)
