@@ -200,16 +200,16 @@ useEffect(() => {
   return () => unsubscribe();
 }, [mode]);
 
-// useEffect(() => {
-//   // If there's no target device yet, set a fixed test target
-//   if (!targetCoords && currentCoords) {
-//     setTargetCoords({
-//       lat: -1.252,
-//       lng: 36.866
-//     });
-//     console.log("🎯 Test targetCoords:", { lat: -1.252, lng: 36.866 });
-//   }
-// }, [currentCoords, targetCoords]);
+useEffect(() => {
+  // If there's no target device yet, set a fixed test target
+  if (!targetCoords && currentCoords) {
+    setTargetCoords({
+      lat: -1.252,
+      lng: 36.866
+    });
+    console.log("🎯 Test targetCoords:", { lat: -1.252, lng: 36.866 });
+  }
+}, [currentCoords, targetCoords]);
 
   return (
     <div className="App">
