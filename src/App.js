@@ -36,39 +36,56 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
-function RecenterMap({ coords }) {
-  const map = useMap();
-  map.setView(coords);
-  return null;
-}
+// function RecenterMap({ coords }) {
+//   const map = useMap();
+//   map.setView(coords);
+//   return null;
+// }
 
-function RoutePath({ from, to }) {
+function RecenterMap({ coords, trigger }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!from || !to) return;
-
-    const routingControl = L.Routing.control({
-      waypoints: [
-        L.latLng(from.lat, from.lng),
-        L.latLng(to.lat, to.lng)
-      ],
-      lineOptions: {
-        styles: [{ color: 'blue', weight: 4 }]
-      },
-      show: false,
-      addWaypoints: false,
-      draggableWaypoints: false,
-      routeWhileDragging: false,
-      createMarker: () => null, // hides extra default markers
-      router: L.Routing.openrouteservice('at_EDYpf03rGcLW1cDQRS18PDvs7p3Yi')
-    }).addTo(map);
-
-    return () => map.removeControl(routingControl);
-  }, [from, to, map]);
+    if (coords) {
+      map.setView(coords, map.getZoom(), {
+        animate: true,
+        duration: 0.5,
+      });
+    }
+  }, [trigger]); // only recenter when `trigger` changes
 
   return null;
 }
+
+
+
+// function RoutePath({ from, to }) {
+//   const map = useMap();
+
+//   useEffect(() => {
+//     if (!from || !to) return;
+
+//     const routingControl = L.Routing.control({
+//       waypoints: [
+//         L.latLng(from.lat, from.lng),
+//         L.latLng(to.lat, to.lng)
+//       ],
+//       lineOptions: {
+//         styles: [{ color: 'blue', weight: 4 }]
+//       },
+//       show: false,
+//       addWaypoints: false,
+//       draggableWaypoints: false,
+//       routeWhileDragging: false,
+//       createMarker: () => null, // hides extra default markers
+//       router: L.Routing.openrouteservice('at_EDYpf03rGcLW1cDQRS18PDvs7p3Yi')
+//     }).addTo(map);
+
+//     return () => map.removeControl(routingControl);
+//   }, [from, to, map]);
+
+//   return null;
+// }
 
 function App() {
   const [currentCoords, setCurrentCoords] = useState(null); 
@@ -83,6 +100,8 @@ function App() {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(true);
   const [selectedRole, setSelectedRole] = useState(null);
+  const [recenterTrigger, setRecenterTrigger] = useState(0);
+
 
 
   const handleSubmitUserInfo = () => {
@@ -458,7 +477,7 @@ const handleRoleSelect = (role) => {
       <div className="box2">
         <MapContainer center={[0, 0]} zoom={2} className="map">
           {(targetCoords || currentCoords) && (
-            <RecenterMap coords={targetCoords || currentCoords} />
+            <RecenterMap coords={targetCoords || currentCoords} trigger={recenterTrigger} />
           )}
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -488,9 +507,15 @@ const handleRoleSelect = (role) => {
                 <br />
                 <em>This is a dummy location for testing</em>
                 <br />
-                <button onClick={() => setTargetCoords({ lat: cleaner.lat, lng: cleaner.lng })}>
+                <button
+                  onClick={() => {
+                    setTargetCoords({ lat: cleaner.lat, lng: cleaner.lng });
+                    setRecenterTrigger((prev) => prev + 1); // triggers map recenter
+                  }}
+                >
                   Track This Cleaner
                 </button>
+
               </Popup>
             </Marker>
           ))}
@@ -501,9 +526,11 @@ const handleRoleSelect = (role) => {
             .map(([id, loc]) => (
               <Marker position={[loc.lat, loc.lng]} key={id} icon={targetIcon}>
                 <Popup>
-                  <strong>Cleaner ID:</strong> {id}
+                  <strong>{loc.role?.toUpperCase() || 'UNKNOWN'}:</strong> {loc.name || id}
                   <br />
-                  <button onClick={() => setTargetCoords(loc)}>
+                  <button onClick={() => {
+                    setTargetCoords(loc); // ✅ this is inside the map() scope
+                  }}>
                     Track This Cleaner
                   </button>
                 </Popup>
