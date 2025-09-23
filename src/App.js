@@ -496,7 +496,7 @@ const handleRoleSelect = (role) => {
           ))}
 
           {/* ✅ Show markers for all cleaners and let user pick one */}
-          {/* {Object.entries(allLocations)
+          {Object.entries(allLocations)
             .filter(([_, loc]) => loc?.lat && loc?.lng)
             .map(([id, loc]) => (
               <Marker position={[loc.lat, loc.lng]} key={id} icon={targetIcon}>
@@ -508,7 +508,7 @@ const handleRoleSelect = (role) => {
                   </button>
                 </Popup>
               </Marker>
-          ))} */}
+          ))}
         </MapContainer>
 
         
