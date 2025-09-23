@@ -8,6 +8,8 @@ import { get, remove } from 'firebase/database';
 import { useMap } from 'react-leaflet';
 import 'leaflet-routing-machine';
 import ManualRoute from './ManualRoute';
+import { v4 as uuidv4 } from 'uuid';
+
 
 const userIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
@@ -71,14 +73,32 @@ function RoutePath({ from, to }) {
 function App() {
   const [currentCoords, setCurrentCoords] = useState(null); 
   const [targetCoords, setTargetCoords] = useState(null);
-  const [deviceId, setDeviceId] = useState('device123'); 
+  const [deviceId, setDeviceId] = useState(null); 
   const [sharing, setSharing] = useState(false);
   const [mode, setMode] = useState(null); 
   const [allLocations, setAllLocations] = useState({});
+  const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState('');
+  const [userImage, setUserImage] = useState('');
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(true);
+  const [selectedRole, setSelectedRole] = useState(null);
+
+
+  const handleSubmitUserInfo = () => {
+  if (!userName || !userRole) {
+    alert("Please enter your name and select a role.");
+    return;
+  }
+
+  setSharing(true);        // Start sharing location
+  setHasSubmitted(true);   // Hide form
+};
 
 
 
-  const enforceDeviceLimitAndSave = async (deviceId, coords) => {
+const enforceDeviceLimitAndSave = async (deviceId, coords) => {
+  const safeDeviceId = deviceId.replace(/\./g, '_'); // ✅ ADD THIS LINE
   const locationsRef = ref(database, 'locations');
 
   try {
@@ -95,48 +115,126 @@ function App() {
       }
     }
 
-    await set(ref(database, `locations/${deviceId}`), {
+    // ✅ Store enhanced cleaner metadata
+    await set(ref(database, `locations/${safeDeviceId}`), {
       lat: coords.lat,
       lng: coords.lng,
-      timestamp: Date.now(), 
+      timestamp: Date.now(),
+      role: userRole || 'client', // default role fallback
+      name: userName || 'Anonymous',
     });
 
-    console.log(`Saved location for ${deviceId}`);
-
+    console.log(`Saved location for ${safeDeviceId}`);
   } catch (err) {
     console.error("Error limiting device list:", err);
   }
 };
 
+//   const enforceDeviceLimitAndSave = async (deviceId, coords) => {
+//   const locationsRef = ref(database, 'locations');
 
-  useEffect(() => {
-    if (!sharing) return;
+  
+//   try {
+//     const snapshot = await get(locationsRef);
+//     const data = snapshot.val();
 
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const coords = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        };
-        setCurrentCoords(coords);
-        console.log("📍 My location (currentCoords):", coords);
+//     if (data) {
+//       const deviceIds = Object.keys(data);
+
+//       if (deviceIds.length >= 100) {
+//         const oldestDeviceId = deviceIds[0]; 
+//         await remove(ref(database, `locations/${oldestDeviceId}`));
+//         console.log(`Removed oldest device: ${oldestDeviceId}`);
+//       }
+//     }
+
+//     await set(ref(database, `locations/${deviceId}`), {
+//       lat: coords.lat,
+//       lng: coords.lng,
+//       timestamp: Date.now(), 
+//     });
+
+//     console.log(`Saved location for ${deviceId}`);
+
+//   } catch (err) {
+//     console.error("Error limiting device list:", err);
+//   }
+// };
+
+
+const hardcodedCleaners = [
+  {
+    id: 'cleaner_1',
+    lat: -1.290,
+    lng: 36.820,
+  },
+  {
+    id: 'cleaner_2',
+    lat: -1.300,
+    lng: 36.830,
+  },
+  {
+    id: 'cleaner_3',
+    lat: -1.310,
+    lng: 36.840,
+  },
+];
+
+
+useEffect(() => {
+  const watchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      const coords = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+      };
+      setCurrentCoords(coords);
+
+      // Always write to Firebase if sharing is enabled
+      if (sharing) {
         const safeDeviceId = deviceId.replace(/\./g, '_');
         set(ref(database, `locations/${safeDeviceId}`), coords);
-      },
-      (err) => {
-        console.error('Error getting location:', err);
-      },
-      { enableHighAccuracy: true }
-    );
+      }
+    },
+    (err) => {
+      console.error('Error getting location:', err);
+    },
+    { enableHighAccuracy: true }
+  );
 
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [sharing, deviceId]);
+  return () => navigator.geolocation.clearWatch(watchId);
+}, [sharing, deviceId, userName, userRole, userImage]);
+
+
+  // useEffect(() => {
+  //   if (!sharing) return;
+
+  //   const watchId = navigator.geolocation.watchPosition(
+  //     (pos) => {
+  //       const coords = {
+  //         lat: pos.coords.latitude,
+  //         lng: pos.coords.longitude,
+  //       };
+  //       setCurrentCoords(coords);
+  //       console.log("📍 My location (currentCoords):", coords);
+  //       const safeDeviceId = deviceId.replace(/\./g, '_');
+  //       set(ref(database, `locations/${safeDeviceId}`), coords);
+  //     },
+  //     (err) => {
+  //       console.error('Error getting location:', err);
+  //     },
+  //     { enableHighAccuracy: true }
+  //   );
+
+  //   return () => navigator.geolocation.clearWatch(watchId);
+  // }, [sharing, deviceId]);
 
 
 
   useEffect(() => {
-  if (mode !== 'share') return;
-
+  // if (mode !== 'share') return;
+  if (!sharing || userRole === 'viewer') return;
+  
   const watchId = navigator.geolocation.watchPosition(
     (pos) => {
       const coords = {
@@ -228,52 +326,135 @@ useEffect(() => {
 //     console.log("🎯 Test targetCoords:", { lat: -1.252, lng: 36.866 });
 //   }
 // }, [currentCoords, targetCoords]);
+  const handleRoleSelect = (role) => {
+    setSelectedRole(role);
+    setUserRole(role);
+    setShowRoleModal(false);
+    
+    // if (role !== 'viewer') {
+    //   setSharing(true);
+    // }
+      if (role !== 'viewer') {
+        const rawId = uuidv4();
+        const rolePrefix = role.toLowerCase(); // e.g., 'cleaner' or 'customer'
+        const fullId = `${rolePrefix}_${rawId}`;
+        localStorage.setItem('deviceId', fullId);
+        setDeviceId(fullId);
+        setSharing(true); // Start sharing location for cleaner/customer
+      } else {
+        // Viewer doesn’t need deviceId
+        setDeviceId(null);
+        setSharing(false);
+      }
+
+  };
+
+  useEffect(() => {
+    const newId = uuidv4();
+    setDeviceId(newId);
+  }, []);
+
+  useEffect(() => {
+  // Only run if deviceId not already set
+    if (deviceId) return;
+
+    const storedId = localStorage.getItem('deviceId');
+    if (storedId) {
+      setDeviceId(storedId);
+    }
+  }, []);
+
 
   return (
     <div className="App">
       <div className="box1">
+          {showRoleModal && (
+            <div className="modal-backdrop">
+              <div className="modal-content">
+                <h2>Welcome!</h2>
+                <p>Who are you?</p>
+                <button onClick={() => handleRoleSelect('viewer')}>Viewer</button>
+                <button onClick={() => handleRoleSelect('cleaner')}>Cleaner</button>
+                <button onClick={() => handleRoleSelect('customer')}>Customer</button>
+              </div>
+            </div>
+          )}
+
             {/* <div className="other-content"> */}
-              <h1>Device Tracker</h1>
+              <h1>Find a nearby cleaner</h1>
 
               <div className="search-form">
-                <input
-                  type="text"
-                  value={deviceId}
-                  onChange={(e) => setDeviceId(e.target.value)}
-                  placeholder="Enter device ID to track"
-                />
+               
                 <button onClick={() => setSharing(!sharing)}>
                   {sharing ? 'Stop Sharing' : 'Start Sharing'}
                 </button>
               </div>
-              
+
+              {!hasSubmitted && (
+                <div className="user-form">
+                  <input
+                    type="text"
+                    placeholder="Your Name"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                  />
+                  <select value={userRole} onChange={(e) => setUserRole(e.target.value)}>
+                    <option value="">Select Role</option>
+                    <option value="cleaner">Cleaner</option>
+                    <option value="client">Client</option>
+                  </select>
+                  <button onClick={handleSubmitUserInfo}>Save & Start Sharing</button>
+                </div>
+              )}
+
+
               <div className="mode-buttons">
-                <button onClick={() => setMode('share')} disabled={mode === 'share'}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={sharing}
+                    onChange={() => setSharing(!sharing)}
+                  />
+                  Share My Location
+                </label>
+
+                {/* <button onClick={() => setMode('share')} disabled={mode === 'share'}>
                   Share My Location
                 </button>
                 <button onClick={() => setMode('track')} disabled={mode === 'track'}>
                   Track Only
-                </button>
+                </button> */}
               </div>
 
               <div className="info-section">
-                {currentCoords && (
+                {selectedRole === 'viewer' && (
+                  <p>You are viewing the map as a guest. No location access needed.</p>
+                )}
+
+                {selectedRole && selectedRole !== 'viewer' && currentCoords && (
+                  <p><strong>Your location:</strong> {currentCoords.lat}, {currentCoords.lng}</p>
+                )}
+                {/* {currentCoords && (
                   <p>
                     <strong>Your location:</strong> {currentCoords.lat}, {currentCoords.lng}
                   </p>
                 )}
-                {targetCoords && (
+                {targetCoords ? (
                   <p>
                     <strong>Tracking device:</strong> {targetCoords.lat}, {targetCoords.lng}
                   </p>
-                )}
+                ):(
+                  mode === 'track' && (
+                    <p style={{ color: 'red' }}>
+                      ⚠️ The target device is not sharing their location.
+                    </p>
+                  )
+                )} */}
           {/* </div> */}
       </div>
 
       <div className="box2">
-        
         <MapContainer center={[0, 0]} zoom={2} className="map">
-          
           {(targetCoords || currentCoords) && (
             <RecenterMap coords={targetCoords || currentCoords} />
           )}
@@ -282,54 +463,54 @@ useEffect(() => {
             attribution="&copy; OpenStreetMap contributors"
           />
 
-          {/* {currentCoords && (
-            console.log('All Locations:', allLocations),
+          {/* ✅ Show route if a cleaner is selected */}
+          {currentCoords && targetCoords && (
+            <ManualRoute from={currentCoords} to={targetCoords} />
+          )}
 
-            <Marker position={currentCoords}>
-              <Popup>You (This device)</Popup>
-            </Marker>
-          )} */}
-
-            {/* {currentCoords && targetCoords && (
-              <RoutePath from={currentCoords} to={targetCoords} />
-            )} */}
-            {/* {currentCoords && targetCoords && (
-              <RoutePath from={currentCoords} to={targetCoords} />
-            )} */}
-
-              {/* {currentCoords && targetCoords && (
-                <ManualRoute from={currentCoords} to={targetCoords} />
-              )} */}
-
-              {currentCoords && targetCoords && (
-                <>
-                  <ManualRoute from={currentCoords} to={targetCoords} />
-
-                  <Marker position={currentCoords} icon={userIcon}>
-                    <Popup>You (This Device)</Popup>
-                  </Marker>
-
-                  <Marker position={targetCoords} icon={targetIcon}>
-                    <Popup>Target Device ({deviceId})</Popup>
-                  </Marker>
-                </>
-              )}
-         
-            {Object.entries(allLocations)
-              .filter(([_, loc]) => loc?.lat && loc?.lng)
-              .map(([id, loc]) => (
-                console.log('All Locations:', allLocations),
-                <Marker position={[loc.lat, loc.lng]} key={id}>
-                  <Popup>{id}</Popup>
-                </Marker>
-            ))}
-
-          {targetCoords && (
-            <Marker position={targetCoords}>
-              <Popup>Target Device ({deviceId})</Popup>
+          {/* ✅ Show marker for current device */}
+          {currentCoords && (
+            <Marker position={currentCoords} icon={userIcon}>
+              <Popup>You (This Device)</Popup>
             </Marker>
           )}
+
+          {hardcodedCleaners.map((cleaner) => (
+            <Marker
+              key={cleaner.id}
+              position={[cleaner.lat, cleaner.lng]}
+              icon={targetIcon}
+            >
+              <Popup>
+                <strong>Demo Cleaner:</strong> {cleaner.id}
+                <br />
+                <em>This is a dummy location for testing</em>
+                <br />
+                <button onClick={() => setTargetCoords({ lat: cleaner.lat, lng: cleaner.lng })}>
+                  Track This Cleaner
+                </button>
+              </Popup>
+            </Marker>
+          ))}
+
+          {/* ✅ Show markers for all cleaners and let user pick one */}
+          {/* {Object.entries(allLocations)
+            .filter(([_, loc]) => loc?.lat && loc?.lng)
+            .map(([id, loc]) => (
+              <Marker position={[loc.lat, loc.lng]} key={id} icon={targetIcon}>
+                <Popup>
+                  <strong>Cleaner ID:</strong> {id}
+                  <br />
+                  <button onClick={() => setTargetCoords(loc)}>
+                    Track This Cleaner
+                  </button>
+                </Popup>
+              </Marker>
+          ))} */}
         </MapContainer>
+
+        
+       
       </div>
       </div>
     </div>
