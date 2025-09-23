@@ -326,10 +326,12 @@ useEffect(() => {
 //     console.log("🎯 Test targetCoords:", { lat: -1.252, lng: 36.866 });
 //   }
 // }, [currentCoords, targetCoords]);
-  const handleRoleSelect = (role) => {
+ 
+const handleRoleSelect = (role) => {
     setSelectedRole(role);
     setUserRole(role);
     setShowRoleModal(false);
+    
     
     // if (role !== 'viewer') {
     //   setSharing(true);
@@ -390,7 +392,7 @@ useEffect(() => {
                 </button>
               </div>
 
-              {!hasSubmitted && (
+              {/* {!hasSubmitted && (
                 <div className="user-form">
                   <input
                     type="text"
@@ -405,7 +407,7 @@ useEffect(() => {
                   </select>
                   <button onClick={handleSubmitUserInfo}>Save & Start Sharing</button>
                 </div>
-              )}
+              )} */}
 
 
               <div className="mode-buttons">
