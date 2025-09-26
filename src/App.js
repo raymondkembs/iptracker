@@ -176,22 +176,7 @@ useEffect(() => {
 
 }, [mode, deviceId]);
 
-useEffect(() => {
-  if (mode !== 'track') return;
 
-  const locationsRef = ref(database, 'locations');
-  const unsubscribe = onValue(locationsRef, (snapshot) => {
-    const data = snapshot.val();
-    console.log("📥 Fetched data from Firebase:", data); 
-    if (data) {
-      setAllLocations(data);
-    } else {
-      setAllLocations({});
-    }
-  });
-
-  return () => unsubscribe();
-}, [mode]);
  
 const handleRoleSelect = (role) => {
     setSelectedRole(role);
@@ -212,6 +197,9 @@ const handleRoleSelect = (role) => {
         setSharing(false);
         setMode('track');
       }
+      console.log("✅ Role selected:", role);
+      console.log("🧭 Mode set to:", role === 'viewer' ? 'track' : 'share');
+
 
   };
 
@@ -230,7 +218,23 @@ const handleRoleSelect = (role) => {
     }
   }, []);
 
+useEffect(() => {
+  if (mode !== 'track') return;
 
+  console.log("📡 Subscribing to Firebase locations...");
+  const locationsRef = ref(database, 'locations');
+  const unsubscribe = onValue(locationsRef, (snapshot) => {
+    const data = snapshot.val();
+    console.log("📥 Fetched data from Firebase:", data); 
+    if (data) {
+      setAllLocations(data);
+    } else {
+      setAllLocations({});
+    }
+  });
+
+  return () => unsubscribe();
+}, [mode]);
   return (
     <div className="App">
       <div className="box1">
