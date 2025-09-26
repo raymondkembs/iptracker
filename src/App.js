@@ -182,7 +182,7 @@ useEffect(() => {
   const locationsRef = ref(database, 'locations');
   const unsubscribe = onValue(locationsRef, (snapshot) => {
     const data = snapshot.val();
-    console.log("📥 Fetched data from Firebase:", data); // <- Add this
+    console.log("📥 Fetched data from Firebase:", data); 
     if (data) {
       setAllLocations(data);
     } else {
@@ -205,10 +205,12 @@ const handleRoleSelect = (role) => {
         localStorage.setItem('deviceId', fullId);
         setDeviceId(fullId);
         setSharing(true); // Start sharing location for cleaner/customer
+        setMode('share');
       } else {
         // Viewer doesn’t need deviceId
         setDeviceId(null);
         setSharing(false);
+        setMode('track');
       }
 
   };
