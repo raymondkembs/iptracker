@@ -36,12 +36,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
-// function RecenterMap({ coords }) {
-//   const map = useMap();
-//   map.setView(coords);
-//   return null;
-// }
-
 function RecenterMap({ coords, trigger }) {
   const map = useMap();
 
@@ -52,40 +46,10 @@ function RecenterMap({ coords, trigger }) {
         duration: 0.5,
       });
     }
-  }, [trigger]); // only recenter when `trigger` changes
+  }, [trigger]);
 
   return null;
 }
-
-
-
-// function RoutePath({ from, to }) {
-//   const map = useMap();
-
-//   useEffect(() => {
-//     if (!from || !to) return;
-
-//     const routingControl = L.Routing.control({
-//       waypoints: [
-//         L.latLng(from.lat, from.lng),
-//         L.latLng(to.lat, to.lng)
-//       ],
-//       lineOptions: {
-//         styles: [{ color: 'blue', weight: 4 }]
-//       },
-//       show: false,
-//       addWaypoints: false,
-//       draggableWaypoints: false,
-//       routeWhileDragging: false,
-//       createMarker: () => null, // hides extra default markers
-//       router: L.Routing.openrouteservice('at_EDYpf03rGcLW1cDQRS18PDvs7p3Yi')
-//     }).addTo(map);
-
-//     return () => map.removeControl(routingControl);
-//   }, [from, to, map]);
-
-//   return null;
-// }
 
 function App() {
   const [currentCoords, setCurrentCoords] = useState(null); 
@@ -102,8 +66,6 @@ function App() {
   const [selectedRole, setSelectedRole] = useState(null);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
 
-
-
   const handleSubmitUserInfo = () => {
   if (!userName || !userRole) {
     alert("Please enter your name and select a role.");
@@ -113,7 +75,6 @@ function App() {
   setSharing(true);        // Start sharing location
   setHasSubmitted(true);   // Hide form
 };
-
 
 
 const enforceDeviceLimitAndSave = async (deviceId, coords) => {
@@ -149,38 +110,6 @@ const enforceDeviceLimitAndSave = async (deviceId, coords) => {
   }
 };
 
-//   const enforceDeviceLimitAndSave = async (deviceId, coords) => {
-//   const locationsRef = ref(database, 'locations');
-
-  
-//   try {
-//     const snapshot = await get(locationsRef);
-//     const data = snapshot.val();
-
-//     if (data) {
-//       const deviceIds = Object.keys(data);
-
-//       if (deviceIds.length >= 100) {
-//         const oldestDeviceId = deviceIds[0]; 
-//         await remove(ref(database, `locations/${oldestDeviceId}`));
-//         console.log(`Removed oldest device: ${oldestDeviceId}`);
-//       }
-//     }
-
-//     await set(ref(database, `locations/${deviceId}`), {
-//       lat: coords.lat,
-//       lng: coords.lng,
-//       timestamp: Date.now(), 
-//     });
-
-//     console.log(`Saved location for ${deviceId}`);
-
-//   } catch (err) {
-//     console.error("Error limiting device list:", err);
-//   }
-// };
-
-
 const hardcodedCleaners = [
   {
     id: 'cleaner_1',
@@ -198,7 +127,6 @@ const hardcodedCleaners = [
     lng: 36.840,
   },
 ];
-
 
 useEffect(() => {
   const watchId = navigator.geolocation.watchPosition(
@@ -224,32 +152,6 @@ useEffect(() => {
   return () => navigator.geolocation.clearWatch(watchId);
 }, [sharing, deviceId, userName, userRole, userImage]);
 
-
-  // useEffect(() => {
-  //   if (!sharing) return;
-
-  //   const watchId = navigator.geolocation.watchPosition(
-  //     (pos) => {
-  //       const coords = {
-  //         lat: pos.coords.latitude,
-  //         lng: pos.coords.longitude,
-  //       };
-  //       setCurrentCoords(coords);
-  //       console.log("📍 My location (currentCoords):", coords);
-  //       const safeDeviceId = deviceId.replace(/\./g, '_');
-  //       set(ref(database, `locations/${safeDeviceId}`), coords);
-  //     },
-  //     (err) => {
-  //       console.error('Error getting location:', err);
-  //     },
-  //     { enableHighAccuracy: true }
-  //   );
-
-  //   return () => navigator.geolocation.clearWatch(watchId);
-  // }, [sharing, deviceId]);
-
-
-
   useEffect(() => {
   // if (mode !== 'share') return;
   if (!sharing || userRole === 'viewer') return;
@@ -269,55 +171,10 @@ useEffect(() => {
     },
     { enableHighAccuracy: true }
   );
-// -----------------------------------------------------------------DOWN*
-//   useEffect(() => {
-//   const targetRef = ref(database, `locations/${deviceId}`);
-//   const unsubscribe = onValue(targetRef, (snapshot) => {
-//     const data = snapshot.val();
-//     if (data) {
-//       setTargetCoords(data);
-//     }
-//   });
 
-//   return () => unsubscribe();
-// }, [deviceId]);
-
-// ------------------------------------------------------------------UP
   return () => navigator.geolocation.clearWatch(watchId);
+
 }, [mode, deviceId]);
-// -----------------------------------------------------------------DOWN*
-  // useEffect(() => {
-  //   const targetRef = ref(database, `locations/${deviceId}`);
-  //   const unsubscribe = onValue(targetRef, (snapshot) => {
-  //     const data = snapshot.val();
-  //     if (data) {
-  //       setTargetCoords(data);
-  //     }
-  //   });
-
-  //   return () => unsubscribe();
-  // }, [deviceId]);
-// -----------------------------------------------------------------UP
-// ------------------Replaced----------------------------------
-// useEffect(() => {
-//   if (mode !== 'track') return;
-
-//   // Sanitize deviceId to remove invalid Firebase path characters
-//   const safeDeviceId = deviceId.replace(/\./g, '_');
-
-//   const targetRef = ref(database, `locations/${safeDeviceId}`);
-//   const unsubscribe = onValue(targetRef, (snapshot) => {
-//     const data = snapshot.val();
-//     if (data) {
-//       setTargetCoords(data);
-//     } else {
-//       setTargetCoords(null);
-//     }
-//   });
-
-//   return () => unsubscribe();
-// }, [mode, deviceId]);
-// -------------------Replaced------------------------------------
 
 useEffect(() => {
   if (mode !== 'track') return;
@@ -325,6 +182,7 @@ useEffect(() => {
   const locationsRef = ref(database, 'locations');
   const unsubscribe = onValue(locationsRef, (snapshot) => {
     const data = snapshot.val();
+    console.log("📥 Fetched data from Firebase:", data); // <- Add this
     if (data) {
       setAllLocations(data);
     } else {
@@ -334,28 +192,13 @@ useEffect(() => {
 
   return () => unsubscribe();
 }, [mode]);
-
-// useEffect(() => {
-//   // If there's no target device yet, set a fixed test target
-//   if (!targetCoords && currentCoords) {
-//     setTargetCoords({
-//       lat: -1.252,
-//       lng: 36.866
-//     });
-//     console.log("🎯 Test targetCoords:", { lat: -1.252, lng: 36.866 });
-//   }
-// }, [currentCoords, targetCoords]);
  
 const handleRoleSelect = (role) => {
     setSelectedRole(role);
     setUserRole(role);
     setShowRoleModal(false);
     
-    
-    // if (role !== 'viewer') {
-    //   setSharing(true);
-    // }
-      if (role !== 'viewer') {
+    if (role !== 'viewer') {
         const rawId = uuidv4();
         const rolePrefix = role.toLowerCase(); // e.g., 'cleaner' or 'customer'
         const fullId = `${rolePrefix}_${rawId}`;
@@ -411,23 +254,6 @@ const handleRoleSelect = (role) => {
                 </button>
               </div>
 
-              {/* {!hasSubmitted && (
-                <div className="user-form">
-                  <input
-                    type="text"
-                    placeholder="Your Name"
-                    value={userName}
-                    onChange={(e) => setUserName(e.target.value)}
-                  />
-                  <select value={userRole} onChange={(e) => setUserRole(e.target.value)}>
-                    <option value="">Select Role</option>
-                    <option value="cleaner">Cleaner</option>
-                    <option value="client">Client</option>
-                  </select>
-                  <button onClick={handleSubmitUserInfo}>Save & Start Sharing</button>
-                </div>
-              )} */}
-
 
               <div className="mode-buttons">
                 <label>
@@ -438,13 +264,6 @@ const handleRoleSelect = (role) => {
                   />
                   Share My Location
                 </label>
-
-                {/* <button onClick={() => setMode('share')} disabled={mode === 'share'}>
-                  Share My Location
-                </button>
-                <button onClick={() => setMode('track')} disabled={mode === 'track'}>
-                  Track Only
-                </button> */}
               </div>
 
               <div className="info-section">
@@ -455,23 +274,7 @@ const handleRoleSelect = (role) => {
                 {selectedRole && selectedRole !== 'viewer' && currentCoords && (
                   <p><strong>Your location:</strong> {currentCoords.lat}, {currentCoords.lng}</p>
                 )}
-                {/* {currentCoords && (
-                  <p>
-                    <strong>Your location:</strong> {currentCoords.lat}, {currentCoords.lng}
-                  </p>
-                )}
-                {targetCoords ? (
-                  <p>
-                    <strong>Tracking device:</strong> {targetCoords.lat}, {targetCoords.lng}
-                  </p>
-                ):(
-                  mode === 'track' && (
-                    <p style={{ color: 'red' }}>
-                      ⚠️ The target device is not sharing their location.
-                    </p>
-                  )
-                )} */}
-          {/* </div> */}
+
       </div>
 
       <div className="box2">
@@ -537,8 +340,6 @@ const handleRoleSelect = (role) => {
               </Marker>
           ))}
         </MapContainer>
-
-        
        
       </div>
       </div>
