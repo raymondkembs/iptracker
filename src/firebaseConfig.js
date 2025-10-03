@@ -1,5 +1,6 @@
-// src/firebaseConfig.js
 import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth, signInAnonymously} from 'firebase/auth';
 import { getDatabase, ref, set, onValue } from 'firebase/database';
 
 const firebaseConfig = {
@@ -15,8 +16,10 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
+const firestore = getFirestore(app);
+const auth = getAuth(app);
 
-export { database, ref, set, onValue };
+export { database, app , firestore, auth, signInAnonymously, ref, set, onValue };
 
 
 // // Import the functions you need from the SDKs you need

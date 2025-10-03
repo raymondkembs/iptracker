@@ -1,5 +1,5 @@
 import './App.css';
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -9,7 +9,42 @@ import { useMap } from 'react-leaflet';
 import 'leaflet-routing-machine';
 import ManualRoute from './ManualRoute';
 import { v4 as uuidv4 } from 'uuid';
+import { auth, signInAnonymously } from './firebaseConfig';
+import ChatBox from './ChatBox';
+import { onAuthStateChanged } from 'firebase/auth';
+import {
+  getFirestore,
+  collection,
+  collectionGroup,
+  query,
+  where,
+  orderBy,
+  onSnapshot
+} from 'firebase/firestore';
+// ✅ RIGHT
+import { firestore as db } from './firebaseConfig';
 
+
+
+const createRoleIcon = (imageUrl, role = 'cleaner') => {
+  return L.divIcon({
+    className: 'custom-div-icon',
+    html: `
+      <div class="marker-pin ${role}"></div>
+      <div class="icon-wrapper">
+        <img src="${imageUrl}" class="icon-image" alt="${role}" />
+      </div>
+    `,
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -40],
+  });
+};
+
+const userMarkerIcon = createRoleIcon(
+  'https://img.icons8.com/ios-filled/50/000000/navigation.png', // or any custom image
+  'you' // a special class in CSS (see next step)
+);
 
 const userIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
@@ -65,6 +100,12 @@ function App() {
   const [showRoleModal, setShowRoleModal] = useState(true);
   const [selectedRole, setSelectedRole] = useState(null);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
+  const [chatWith, setChatWith] = useState(null);
+  const [user, setUser] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [incomingMessage, setIncomingMessage] = useState(null);
+  const [unreadMessages, setUnreadMessages] = useState({});
+
 
   const handleSubmitUserInfo = () => {
   if (!userName || !userRole) {
@@ -102,6 +143,7 @@ const enforceDeviceLimitAndSave = async (deviceId, coords) => {
       timestamp: Date.now(),
       role: userRole || 'client', // default role fallback
       name: userName || 'Anonymous',
+      uid: auth.currentUser?.uid || null, // Firebase Auth UID
     });
 
     console.log(`Saved location for ${safeDeviceId}`);
@@ -127,43 +169,49 @@ const hardcodedCleaners = [
     lng: 36.840,
   },
 ];
+// This one down here is the original useEffect for geolocation tracking
+// useEffect(() => {
+//   const watchId = navigator.geolocation.watchPosition(
+//     (pos) => {
+//       const coords = {
+//         lat: pos.coords.latitude,
+//         lng: pos.coords.longitude,
+//       };
+//       setCurrentCoords(coords);
+
+//       // Always write to Firebase if sharing is enabled
+//       if (sharing) {
+//         const safeDeviceId = deviceId.replace(/\./g, '_');
+//         set(ref(database, `locations/${safeDeviceId}`), coords);
+//       }
+//     },
+//     (err) => {
+//       console.error('Error getting location:', err);
+//     },
+//     { enableHighAccuracy: true }
+//   );
+
+//   return () => navigator.geolocation.clearWatch(watchId);
+// }, [sharing, deviceId, userName, userRole, userImage]);
 
 useEffect(() => {
-  const watchId = navigator.geolocation.watchPosition(
-    (pos) => {
-      const coords = {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-      };
-      setCurrentCoords(coords);
-
-      // Always write to Firebase if sharing is enabled
-      if (sharing) {
-        const safeDeviceId = deviceId.replace(/\./g, '_');
-        set(ref(database, `locations/${safeDeviceId}`), coords);
-      }
-    },
-    (err) => {
-      console.error('Error getting location:', err);
-    },
-    { enableHighAccuracy: true }
-  );
-
-  return () => navigator.geolocation.clearWatch(watchId);
-}, [sharing, deviceId, userName, userRole, userImage]);
-
-  useEffect(() => {
-  // if (mode !== 'share') return;
   if (!sharing || userRole === 'viewer') return;
-  
+
   const watchId = navigator.geolocation.watchPosition(
     (pos) => {
-      const coords = {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-      };
+      let lat = pos.coords.latitude;
+      let lng = pos.coords.longitude;
+
+      // ✅ Apply 1km offset for customers
+      if (deviceId?.startsWith('customer')) {
+        lat += 0.009;
+        lng += 0.009;
+      }
+
+      const coords = { lat, lng };
       setCurrentCoords(coords);
       console.log("📍 My location (currentCoords):", coords);
+
       enforceDeviceLimitAndSave(deviceId, coords);
     },
     (err) => {
@@ -173,8 +221,32 @@ useEffect(() => {
   );
 
   return () => navigator.geolocation.clearWatch(watchId);
-
 }, [mode, deviceId]);
+
+
+//   useEffect(() => {
+//   // if (mode !== 'share') return;
+//   if (!sharing || userRole === 'viewer') return;
+  
+//   const watchId = navigator.geolocation.watchPosition(
+//     (pos) => {
+//       const coords = {
+//         lat: pos.coords.latitude,
+//         lng: pos.coords.longitude,
+//       };
+//       setCurrentCoords(coords);
+//       console.log("📍 My location (currentCoords):", coords);
+//       enforceDeviceLimitAndSave(deviceId, coords);
+//     },
+//     (err) => {
+//       console.error('Error getting location:', err);
+//     },
+//     { enableHighAccuracy: true }
+//   );
+
+//   return () => navigator.geolocation.clearWatch(watchId);
+
+// }, [mode, deviceId]);
 
 
  
@@ -235,6 +307,224 @@ useEffect(() => {
 
   return () => unsubscribe();
 }, [mode]);
+
+
+useEffect(() => {
+  // Anonymous sign-in on app load
+  signInAnonymously(auth)
+    .then(() => {
+      console.log("✅ Signed in anonymously to Firebase");
+    })
+    .catch((err) => {
+      console.error("❌ Firebase anonymous sign-in error:", err);
+    });
+}, []);
+
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    if (firebaseUser) {
+      setUser(firebaseUser);
+      console.log("✅ User signed in:", firebaseUser.uid);
+    } else {
+      // Try signing in anonymously
+      signInAnonymously(auth)
+        .then((userCred) => {
+          setUser(userCred.user);
+          console.log("✅ Signed in anonymously:", userCred.user.uid);
+        })
+        .catch((error) => {
+          console.error("❌ Anonymous sign-in failed:", error);
+        });
+    }
+  });
+
+  return () => unsubscribe();
+}, []);
+
+useEffect(() => {
+  if (!user?.uid) return;
+
+  const q = query(
+    collectionGroup(db, "messages"),
+    where("recipientId", "==", user.uid),
+    orderBy("timestamp", "desc")
+  );
+
+  const unsub = onSnapshot(q, (snapshot) => {
+    if (!snapshot.empty) {
+      const latest = snapshot.docs[0].data();
+
+      const senderId = latest.senderId;
+      const conversationId = [latest.senderId, user.uid].sort().join('_');
+
+      if (senderId !== user.uid && senderId !== chatWith) {
+        // 👇 Mark sender as having an unread message
+        setUnreadMessages(prev => ({
+          ...prev,
+          [senderId]: true
+        }));
+
+        setIncomingMessage({
+          text: latest.text,
+          senderId,
+          conversationId
+        });
+
+        // Optional auto-dismiss notification popup
+        setTimeout(() => setIncomingMessage(null), 5000);
+      }
+    }
+  });
+
+  return () => unsub();
+}, [user?.uid, chatWith]);
+
+
+// useEffect(() => {
+//   if (!user?.uid) return;
+
+//   const q = query(
+//     collectionGroup(db, "messages"), // 👈 grabs all messages from any conversation
+//     where("recipientId", "==", user.uid),
+//     orderBy("timestamp", "desc")
+//   );
+
+//   const unsub = onSnapshot(q, (snapshot) => {
+//     if (!snapshot.empty) {
+//       const latest = snapshot.docs[0].data();
+
+//       // ✅ Optional: check if chatWith !== senderId to avoid double notification
+//       if (latest.senderId !== user.uid && latest.senderId !== chatWith) {
+//         // ✅ Show modal with message
+//         setIncomingMessage({
+//           text: latest.text,
+//           senderId: latest.senderId,
+//           conversationId: [latest.senderId, user.uid].sort().join('_')
+//         });
+
+//         // Auto-hide after 5 seconds (optional)
+//         setTimeout(() => setIncomingMessage(null), 5000);
+//       }
+//     }
+//   });
+
+//   return () => unsub();
+// }, [user?.uid, chatWith]);
+
+// useEffect(() => {
+//   if (!user?.uid || !chatWith) return;
+
+//   const messagesQuery = query(
+//     collection(db, "messages"),
+//     where("participants", "array-contains", user.uid),
+//     orderBy("timestamp", "asc")
+//   );
+
+//   const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+//     setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+//   });
+
+//   return () => unsubscribe();
+// }, [user?.uid, chatWith]);
+
+// useEffect(() => {
+//   console.log("🟢 Chat with:", chatWith);
+//   console.log("🟢 Chat render check:", chatWith, auth.currentUser?.uid);
+
+// }, [chatWith]);
+
+  const visibleMarkers = Object.entries(allLocations)
+  .filter(([id, loc]) => {
+    if (!loc?.lat || !loc?.lng || !loc?.uid || !loc?.role) return false;
+
+    // Viewer sees all (clients + customers)
+    if (userRole === 'viewer') {
+      return loc.role === 'client' || loc.role === 'customer';
+    }
+
+    // Client sees only customers
+    if (userRole === 'client') {
+      return loc.role === 'customer';
+    }
+
+    // Customer sees only clients
+    if (userRole === 'customer') {
+      return loc.role === 'client';
+    }
+
+    return false;
+  });
+
+
+  const renderPopupContent = (loc) => {
+    const isSelf = loc.uid === user?.uid;
+    const clientCanTrack = true; // simulate permission system for now
+
+    if (userRole === 'customer' && loc.role === 'cleaner' && clientCanTrack) {
+      return (
+        <button onClick={() => setTargetCoords(loc)}>Track Cleaner</button>
+      );
+    }
+
+    // Don't show popup buttons for yourself
+    if (isSelf) {
+      return <strong>You (This Device)</strong>;
+    }
+
+    // Viewer: Only show name
+    if (userRole === 'viewer') {
+      return (
+        <div>
+          <strong>{loc.name || 'Unknown'}</strong>
+          <br />
+          <em>({loc.role})</em>
+        </div>
+      );
+    }
+
+    // Cleaner: Can see customers only, but no chat or track
+    if (userRole === 'cleaner') {
+      return (
+        <div>
+          <strong>{loc.name || 'Customer'}</strong>
+          <br />
+          <em>(Customer)</em>
+        </div>
+      );
+    }
+
+  // Customer: Can see cleaners, and can chat + track
+  if (userRole === 'customer' && loc.role === 'cleaner') {
+    return (
+      <div>
+        <strong>{loc.name || 'Cleaner'}</strong>
+        <br />
+        <button onClick={() => {
+          setTargetCoords(loc);
+          setRecenterTrigger(prev => prev + 1);
+        }}>
+          Track Cleaner
+        </button>
+        <br />
+        <button onClick={() => handleOpenChat(loc.uid)}>Show Chat</button>
+        {/* <button onClick={() => setChatWith(loc.uid)}>Chat</button> */}
+      </div>
+    );
+  }
+
+  return <div><strong>{loc.name}</strong></div>;
+};
+
+const handleOpenChat = (uid) => {
+  setChatWith(uid);
+  setUnreadMessages(prev => {
+    const updated = { ...prev };
+    delete updated[uid]; // Mark message as read
+    return updated;
+  });
+};
+
+
   return (
     <div className="App">
       <div className="box1">
@@ -284,6 +574,7 @@ useEffect(() => {
       </div>
 
       <div className="box2">
+        
         <MapContainer center={[0, 0]} zoom={2} className="map">
           {(targetCoords || currentCoords) && (
             <RecenterMap coords={targetCoords || currentCoords} trigger={recenterTrigger} />
@@ -300,7 +591,11 @@ useEffect(() => {
 
           {/* ✅ Show marker for current device */}
           {currentCoords && (
-            <Marker position={currentCoords} icon={userIcon}>
+            <Marker 
+              position={currentCoords} 
+              // icon={userIcon}
+              icon={userMarkerIcon}
+            >
               <Popup>You (This Device)</Popup>
             </Marker>
           )}
@@ -309,7 +604,8 @@ useEffect(() => {
             <Marker
               key={cleaner.id}
               position={[cleaner.lat, cleaner.lng]}
-              icon={targetIcon}
+              // icon={targetIcon}
+              icon={createRoleIcon('https://img.icons8.com/ios-filled/50/000000/broom.png', 'cleaner')}
             >
               <Popup>
                 <strong>Demo Cleaner:</strong> {cleaner.id}
@@ -330,25 +626,146 @@ useEffect(() => {
           ))}
 
           {/* ✅ Show markers for all cleaners and let user pick one */}
-          {Object.entries(allLocations)
-            .filter(([_, loc]) => loc?.lat && loc?.lng)
-            .map(([id, loc]) => (
-              <Marker position={[loc.lat, loc.lng]} key={id} icon={targetIcon}>
-                <Popup>
-                  <strong>{loc.role?.toUpperCase() || 'UNKNOWN'}:</strong> {loc.name || id}
-                  <br />
-                  <button onClick={() => {
-                    setTargetCoords(loc); // ✅ this is inside the map() scope
-                  }}>
-                    Track This Cleaner
-                  </button>
-                </Popup>
-              </Marker>
-          ))}
+            {/* {Object.entries(allLocations)
+              .filter(([_, loc]) => loc?.lat && loc?.lng && loc?.uid)
+              .map(([id, loc]) => (
+                <Marker 
+                  position={[loc.lat, loc.lng]} 
+                  key={id} 
+                  // icon={targetIcon}
+                  icon={createRoleIcon(
+                      loc.role === 'cleaner'
+                        ? 'https://img.icons8.com/ios-filled/50/000000/broom.png'
+                        : loc.role === 'customer'
+                        ? 'https://img.icons8.com/ios-filled/50/000000/user.png'
+                        : 'https://img.icons8.com/ios-filled/50/000000/eye.png',
+                      loc.role
+                    )}
+                  >
+                  <Popup>
+                    <strong>{loc.role?.toUpperCase() || 'UNKNOWN'}:</strong> {loc.name || id}
+                    <br />
+                    <button onClick={() => {
+                      setTargetCoords(loc);
+                      setRecenterTrigger(prev => prev + 1); // optional: recenter map
+                    }}>
+                      Track Location
+                    </button>
+                    <br />
+                    <button onClick={() => {
+                      setChatWith(loc.uid);
+                    }}>
+                      Show Chat
+                    </button>
+                  </Popup>
+
+                </Marker>
+            ))} */}
+            {visibleMarkers.map(([id, loc]) => {
+              const isUnread = unreadMessages[loc.uid]; // ✅ OK here
+              const isSelf = loc.uid === user?.uid;
+
+              return (
+                <Marker
+                  key={id}
+                  position={[loc.lat, loc.lng]}
+                  icon={createRoleIcon(
+                    loc.role === 'cleaner'
+                      ? 'https://img.icons8.com/ios-filled/50/000000/broom.png'
+                      : 'https://img.icons8.com/ios-filled/50/000000/user.png',
+                    loc.role
+                  )}
+                >
+                  <Popup>
+                    {renderPopupContent(loc)} {/* ✅ OK */}
+                  </Popup>
+
+                  {/* ✅ Show unread bubble if needed */}
+                  {isUnread && !isSelf && (
+                    <div className="message-bubble" style={{
+                      position: 'absolute',
+                      transform: 'translate(-50%, -100%)',
+                      top: '-25px',
+                      left: '50%',
+                      zIndex: 1000,
+                    }}>
+                      <img
+                        src="https://img.icons8.com/emoji/48/new-button-emoji.png"
+                        alt="New message"
+                        style={{ width: 24, height: 24 }}
+                      />
+                    </div>
+                  )}
+                </Marker>
+              );
+            })}
+
+              {/* <strong>{loc.role?.toUpperCase() || 'UNKNOWN'}:</strong> {loc.name || id}
+              <br />
+              <button onClick={() => {
+                setTargetCoords(loc);
+                setRecenterTrigger(prev => prev + 1); // optional: recenter map
+              }}>
+                Track Location
+              </button>
+              <br />
+              <button onClick={() => {
+                setChatWith(loc.uid);
+              }}>
+                Show Chat
+              </button> */}
+        
+
         </MapContainer>
        
       </div>
       </div>
+      {incomingMessage && (
+        <div style={{
+          position: 'absolute',
+          top: 20,
+          right: 20,
+          background: 'white',
+          border: '1px solid #ccc',
+          padding: '1rem',
+          zIndex: 1000,
+          boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+        }}>
+          <strong>📨 New message</strong>
+          <p>{incomingMessage.text}</p>
+          <button
+            onClick={() => {
+              setChatWith(incomingMessage.senderId);
+              setIncomingMessage(null);
+            }}
+          >
+            Open Chat
+          </button>
+        </div>
+      )}
+
+      {chatWith && user?.uid && (
+        <div style={{ background: 'white', padding: '1rem', position: 'absolute', bottom: 10, right: 10, zIndex: 999 }}>
+          Chat with: {chatWith}
+        </div>
+      )}
+      {chatWith && user?.uid && (
+        <ChatBox
+          conversationId={[auth.currentUser.uid, chatWith].sort().join('_')}
+          recipientId={chatWith}
+          onClose={() => setChatWith(null)} // ✅ Add close handler
+        />
+      )}
+
+
+      {/* {chatWith && user?.uid &&(
+        
+        <ChatBox conversationId={
+          [auth.currentUser.uid, chatWith].sort().join('_')
+        }
+        recipientId={chatWith} 
+        />
+      )} */}
     </div>
   );
 }
