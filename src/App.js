@@ -141,7 +141,7 @@ const enforceDeviceLimitAndSave = async (deviceId, coords) => {
       lat: coords.lat,
       lng: coords.lng,
       timestamp: Date.now(),
-      role: userRole || 'client', // default role fallback
+      role: userRole || 'cleaner', // default role fallback
       name: userName || 'Anonymous',
       uid: auth.currentUser?.uid || null, // Firebase Auth UID
     });
@@ -291,22 +291,26 @@ const handleRoleSelect = (role) => {
   }, []);
 
 useEffect(() => {
-  if (mode !== 'track') return;
+  if (userRole === 'viewer') {
+    // Viewer should see everyone
+  } else if (userRole === 'customer' || userRole === 'cleaner') {
+    // Cleaners and customers need to track each other
+  } else {
+    // No role or unknown role — don't subscribe
+    return;
+  }
 
   console.log("📡 Subscribing to Firebase locations...");
   const locationsRef = ref(database, 'locations');
   const unsubscribe = onValue(locationsRef, (snapshot) => {
     const data = snapshot.val();
-    console.log("📥 Fetched data from Firebase:", data); 
-    if (data) {
-      setAllLocations(data);
-    } else {
-      setAllLocations({});
-    }
+    console.log("📥 Updated locations from Firebase:", data);
+    setAllLocations(data);
   });
 
   return () => unsubscribe();
-}, [mode]);
+}, [userRole]);
+
 
 
 useEffect(() => {
@@ -462,7 +466,25 @@ useEffect(() => {
 
     if (userRole === 'customer' && loc.role === 'cleaner' && clientCanTrack) {
       return (
-        <button onClick={() => setTargetCoords(loc)}>Track Cleaner</button>
+        // <button onClick={() => setTargetCoords(loc)}>Track Cleaner</button>
+          <div>
+          <strong>{loc.name || 'Cleaner'}</strong>
+          <br />
+          <em>({loc.role})</em>
+          <br />
+          <button
+            onClick={() => {
+              setTargetCoords(loc);
+              setRecenterTrigger(prev => prev + 1);
+            }}
+          >
+            Track Cleaner
+          </button>
+          <br />
+          <button onClick={() => handleOpenChat(loc.uid)}>
+            Chat with Cleaner
+          </button>
+        </div>
       );
     }
 
@@ -757,6 +779,11 @@ const handleOpenChat = (uid) => {
         />
       )}
 
+      {Object.keys(unreadMessages).length > 0 && (
+        <div className="notification-bell">
+          🛎️ {Object.keys(unreadMessages).length} new message(s)
+        </div>
+      )}
 
       {/* {chatWith && user?.uid &&(
         
