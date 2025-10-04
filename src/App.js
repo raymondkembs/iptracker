@@ -437,23 +437,23 @@ useEffect(() => {
   .filter(([id, loc]) => {
     if (!loc?.lat || !loc?.lng || !loc?.uid || !loc?.role) return false;
 
-    // Viewer sees all (clients + customers)
     if (userRole === 'viewer') {
-      return loc.role === 'client' || loc.role === 'customer';
+      return loc.role === 'cleaner' || loc.role === 'customer';
     }
 
-    // Client sees only customers
-    if (userRole === 'client') {
+    // Cleaners see customers
+    if (userRole === 'cleaner') {
       return loc.role === 'customer';
     }
 
-    // Customer sees only clients
+    // Customers see cleaners
     if (userRole === 'customer') {
-      return loc.role === 'client';
+      return loc.role === 'cleaner';
     }
 
     return false;
   });
+
 
 
   const renderPopupContent = (loc) => {
