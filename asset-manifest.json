@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/iptracker/static/css/main.2d91abe0.css",
-    "main.js": "/iptracker/static/js/main.bc5e4f26.js",
+    "main.css": "/iptracker/static/css/main.9961e2af.css",
+    "main.js": "/iptracker/static/js/main.25a33445.js",
     "index.html": "/iptracker/index.html",
-    "main.2d91abe0.css.map": "/iptracker/static/css/main.2d91abe0.css.map",
-    "main.bc5e4f26.js.map": "/iptracker/static/js/main.bc5e4f26.js.map"
+    "main.9961e2af.css.map": "/iptracker/static/css/main.9961e2af.css.map",
+    "main.25a33445.js.map": "/iptracker/static/js/main.25a33445.js.map"
   },
   "entrypoints": [
-    "static/css/main.2d91abe0.css",
-    "static/js/main.bc5e4f26.js"
+    "static/css/main.9961e2af.css",
+    "static/js/main.25a33445.js"
   ]
 }
