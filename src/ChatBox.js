@@ -84,7 +84,7 @@ function ChatBox({ conversationId, recipientId, onClose, userRole = 'customer' }
       </div>
 
       {/* Input */}
-      <div className="chatbox-input-area">
+      {/* <div className="chatbox-input-area">
         <input
           value={message}
           onChange={e => setMessage(e.target.value)}
@@ -93,7 +93,30 @@ function ChatBox({ conversationId, recipientId, onClose, userRole = 'customer' }
           className="chatbox-input"
         />
         <button onClick={sendMessage} className="chatbox-send-button" title="Send">Send</button>
+      </div> */}
+      <div className="chatbox-input-area">
+        <textarea
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault(); // prevent newline
+              sendMessage();
+            }
+          }}
+          placeholder="Type a message..."
+          className="chatbox-input"
+          rows={1} // optional: can be removed for auto-grow
+        />
+        <button
+          onClick={sendMessage}
+          className="chatbox-send-button"
+          title="Send"
+        >
+          Send
+        </button>
       </div>
+
     </div>
   );
 }
