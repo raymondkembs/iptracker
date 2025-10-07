@@ -467,24 +467,62 @@ useEffect(() => {
     if (userRole === 'customer' && loc.role === 'cleaner' && clientCanTrack) {
       return (
         // <button onClick={() => setTargetCoords(loc)}>Track Cleaner</button>
-          <div>
-          <strong>{loc.name || 'Cleaner'}</strong>
-          <br />
-          <em>({loc.role})</em>
-          <br />
-          <button
-            onClick={() => {
-              setTargetCoords(loc);
-              setRecenterTrigger(prev => prev + 1);
-            }}
-          >
-            Track Cleaner
-          </button>
-          <br />
-          <button onClick={() => handleOpenChat(loc.uid)}>
-            Chat with Cleaner
-          </button>
+        //   <div>
+        //   <strong>{loc.name || 'Cleaner'}</strong>
+        //   <br />
+        //   <em>({loc.role})</em>
+        //   <br />
+        //   <button
+        //     style={{ 
+        //       marginTop: 8,
+        //       marginLeft: 10,
+        //       padding: '8px 16px',
+        //       backgroundColor: '#007bff',
+        //       color: 'white',
+        //       border: 'none',
+        //       borderRadius: 20,
+        //       fontSize: 14,
+        //       cursor: 'pointer',
+        //       transition: 'background-color 0.2s',
+        //     }}
+
+        //     onClick={() => {
+        //       setTargetCoords(loc);
+        //       setRecenterTrigger(prev => prev + 1);
+        //     }}
+        //   >
+        //     Track Cleaner
+        //   </button>
+        //   <br />
+        //   <button onClick={() => handleOpenChat(loc.uid)}>
+        //     Chat with Cleaner
+        //   </button>
+        // </div>
+        <div className="user-card">
+          <div className="user-info">
+            <strong className="user-name">{loc.name || 'Cleaner'}</strong>
+            <div className="user-role">({loc.role})</div>
+          </div>
+
+          <div className="user-actions">
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                setTargetCoords(loc);
+                setRecenterTrigger(prev => prev + 1);
+              }}
+            >
+              Track Cleaner
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => handleOpenChat(loc.uid)}
+            >
+              Chat with Cleaner
+            </button>
+          </div>
         </div>
+
       );
     }
 
@@ -766,11 +804,11 @@ const handleOpenChat = (uid) => {
         </div>
       )}
 
-      {chatWith && user?.uid && (
+      {/* {chatWith && user?.uid && (
         <div style={{ background: 'white', padding: '1rem', position: 'absolute', bottom: 10, right: 10, zIndex: 999 }}>
           Chat with: {chatWith}
         </div>
-      )}
+      )} */}
       {chatWith && user?.uid && (
         <ChatBox
           conversationId={[auth.currentUser.uid, chatWith].sort().join('_')}
