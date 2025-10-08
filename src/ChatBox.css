@@ -152,7 +152,7 @@
   }
 
   .chatbox-send-button {
-    display: none;
+    /* display: none; */
     width: 100%;
     margin-left: 0;
   }
