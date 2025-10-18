@@ -244,8 +244,11 @@ input:checked + .slider:before {
 }
 
 .notification {
+  margin-top: 5px;
+  margin-left: 15px; 
+  width: 100%;
   background-color: #fff;
-  padding: 1rem;
+  padding: 12px;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -305,7 +308,20 @@ input:checked + .slider:before {
   background-color: #0056b3;
 }
 
-
+.profile-popup{
+  position: absolute;
+  z-index: 1000;
+  bottom: 20px;
+  left: 20px;
+  width: 305px;
+  font-size: 13px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 4px 10px rgba(39, 39, 39, 0.15);
+  
+}
 
 /* Make it stack naturally on small screens */
 @media (max-width: 768px) {
@@ -358,30 +374,23 @@ input:checked + .slider:before {
   .search-form button {
     width: 100%;
   }
+
+  .profile-popup{
+    position: relative;
+    margin-right: 35px;
+    margin-top: 15px;
+    width: 285px;
+    border: none;
+  }
+
+  .stopSharing{
+    width: 100%;
+    background: red;
+  }
 }
-
-
-
 
 /* ================================================== */
 
-
-
-
-
-
-/* .box1{
-    margin-top: 200px;
-    height: auto;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    width: 100%;
-    padding: 10px;
-    color: var(--gray2);
-    background: var(--gray);
-} */
 .box2{
     height: 70%;
     width: 100%;
@@ -571,17 +580,6 @@ input:checked + .slider:before {
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.15); /* Optional: subtle shadow for better contrast */
 }
 
-/* .icon-wrapper {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  overflow: hidden;
-  position: absolute;
-  top: 5px;
-  left: 5px;
-  z-index: 2;
-} */
-
 .icon-image {
   width: 100%;
   height: 100%;
@@ -651,7 +649,7 @@ input:checked + .slider:before {
 }
 
 .btn-secondary:hover {
-  background-color: #e0e0e0;
+  background-color: #d8d7d7;
 }
 
 

@@ -105,6 +105,9 @@ function App() {
   const [unreadMessages, setUnreadMessages] = useState({});
   const [isAvailable, setIsAvailable] = useState(true);
   const [incomingRequest, setIncomingRequest] = useState(null);
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [requestFeedback, setRequestFeedback] = useState('');
+  const [customerNotification, setCustomerNotification] = useState('');
 
   const toggleAvailability = () => {
     setIsAvailable(prev => !prev);
@@ -389,6 +392,12 @@ useEffect(() => {
             >
               Request
             </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setSelectedProfile(loc)}
+            >
+              View Profile
+            </button>
           </div>
         </div>
 
@@ -487,6 +496,23 @@ useEffect(() => {
   return () => unsubscribe();
 }, [user?.uid, userRole]);
 
+useEffect(() => {
+  if (!user) return;
+
+  const reqRef = ref(database, `requests/${user.uid}`); // customer UID!
+  const unsubscribe = onValue(reqRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data?.status === 'accepted') {
+      setCustomerNotification('accepted');
+    } else if (data?.status === 'rejected') {
+      setCustomerNotification('rejected');
+    }
+  });
+
+  return () => unsubscribe();
+}, [user]);
+
+
 const acceptRequest = async () => {
   const reqRef = ref(database, `requests/${user.uid}`);
   await set(reqRef, { ...incomingRequest, status: 'accepted' });
@@ -504,7 +530,9 @@ const acceptRequest = async () => {
   });
 
   setIncomingRequest(null);
+  setRequestFeedback('accepted');
 };
+
 
 
 const handleTrackCustomer = () => {
@@ -535,59 +563,30 @@ const handleTrackCustomer = () => {
   }
 };
 
-
-// const handleTrackCustomer = () => {
-//   console.log("🔍 Incoming request from UID:", incomingRequest?.from);
-
-
-//   if (!incomingRequest?.from || !allLocations) return;
-
-//   const customerEntry = Object.entries(allLocations).find(
-//     ([key, loc]) =>
-//       key === incomingRequest.from || loc.uid === incomingRequest.from
-//   );
-
-//   if (customerEntry) {
-//     const [, customerLoc] = customerEntry;
-//     setTargetCoords({ lat: customerLoc.lat, lng: customerLoc.lng });
-//     setRecenterTrigger((prev) => prev + 1);
-
-//     console.log("📍 Tracking customer at:", customerLoc);
-//   } else {
-//     console.warn("⚠️ Could not find customer in allLocations:", incomingRequest.from);
-//     alert("Customer location not found.");
-//   }
-// };
-
-// const handleTrackCustomer = () => {
-//   if (!incomingRequest?.from || !allLocations) return;
-
-//   const customerLoc = Object.values(allLocations).find(
-//     (loc) => loc.uid === incomingRequest.from
-//   );
-
-//   if (customerLoc) {
-//     setTargetCoords({
-//       lat: customerLoc.lat,
-//       lng: customerLoc.lng,
-//     });
-//     setRecenterTrigger((prev) => prev + 1);
-
-//     console.log("📍 Tracking customer at:", customerLoc);
-//     console.log("🔍 Incoming request from UID:", incomingRequest?.from);
-
-//   } else {
-//     alert("Customer location not found.");
-//   }
-// };
-
 const rejectRequest = async () => {
   const reqRef = ref(database, `requests/${user.uid}`);
   await set(reqRef, { ...incomingRequest, status: 'rejected' });
 
   setIncomingRequest(null);
+  setRequestFeedback('rejected');
 };
 
+useEffect(() => {
+  if (requestFeedback) {
+    const timer = setTimeout(() => {
+      setRequestFeedback('');
+    }, 5000); // hides after 5s
+
+    return () => clearTimeout(timer);
+  }
+}, [requestFeedback]);
+
+useEffect(() => {
+  if (customerNotification) {
+    const timer = setTimeout(() => setCustomerNotification(''), 5000);
+    return () => clearTimeout(timer);
+  }
+}, [customerNotification]);
 
   return (
     <div className="App">
@@ -597,6 +596,7 @@ const rejectRequest = async () => {
             {incomingMessage && (
               <div className="notification message-notification">
                 <strong>📨 New message:</strong> {incomingMessage.text}
+                <br />
                 <button onClick={() => {
                   setChatWith(incomingMessage.senderId);
                   setIncomingMessage(null);
@@ -646,7 +646,83 @@ const rejectRequest = async () => {
                 🛎️ {Object.keys(unreadMessages).length} new message(s)
               </div>
             )} */}
+
+              {userRole === 'customer' && customerNotification === 'accepted' && (
+                <div
+                  style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    right: '20px',
+                    background: '#d4edda',
+                    color: '#155724',
+                    padding: '15px',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+                    zIndex: 2000,
+                  }}
+                >
+                  ✅ Your request was accepted by the cleaner!
+                </div>
+              )}
+
+              {userRole === 'customer' && customerNotification === 'rejected' && (
+                <div
+                  style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    right: '20px',
+                    background: '#fff3cd',
+                    color: '#856404',
+                    padding: '15px',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+                    zIndex: 2000,
+                  }}
+                >
+                  ❌ The cleaner rejected your request. Please try another one.
+                </div>
+              )}
+
+
           </div>
+          
+          {userRole === 'cleaner' && requestFeedback === 'accepted' && (
+            <div
+              style={{
+                position: 'fixed',
+                // bottom: '20px',
+                // right: '20px',
+                background: '#d4edda',
+                color: '#155724',
+                padding: '15px',
+                borderRadius: '8px',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+                zIndex: 2000,
+              }}
+            >
+              ✅ You accepted the cleaning request.
+            </div>
+          )}
+
+          {userRole === 'cleaner' && requestFeedback === 'rejected' && (
+            <div
+              style={{
+                position: 'fixed',
+                // bottom: '20px',
+                // right: '20px',
+                background: '#fff3cd',
+                color: '#856404',
+                padding: '15px',
+                borderRadius: '8px',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+                zIndex: 2000,
+              }}
+            >
+              ❌ You rejected the request.
+            </div>
+          )}
+
+
           {showRoleModal && (
             <div className="modal-backdrop">
               <div className="modal-content">
@@ -761,21 +837,10 @@ const rejectRequest = async () => {
             <div className="panel-content">
               <div className="search-form">
                
-                <button onClick={() => setSharing(!sharing)}>
+                <button className="stopSharing" onClick={() => setSharing(!sharing)}>
                   {sharing ? 'Stop Sharing' : 'Start Sharing'}
                 </button>
               </div>
-
-              {/* <div className="mode-buttons">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={sharing}
-                    onChange={() => setSharing(!sharing)}
-                  />
-                  Share My Location
-                </label>
-              </div> */}
 
               {userRole === 'cleaner' && (
                 <div className="availability-toggle">
@@ -807,45 +872,48 @@ const rejectRequest = async () => {
             
           </div>
                 
-          </div>
+      </div>
+                {selectedProfile && (
+                  <div
+                    className="profile-popup"
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <img
+                        src={selectedProfile.photoURL || "https://images.pexels.com/photos/34125457/pexels-photo-34125457.jpeg"}
+                        alt={selectedProfile.name}
+                        style={{ width: "60px", height: "60px", borderRadius: "50%", objectFit: "cover" }}
+                      />
+                      <div>
+                        <p>{selectedProfile.name || "Unnamed"}</p>
+                        <div style={{ fontSize: "14px", color: "#555" }}>
+                          {selectedProfile.role || "Cleaner"}
+                        </div>
+                      </div>
+                    </div>
 
-          
+                    <div style={{ marginTop: "10px" }}>
+                      <p><strong>Reviews:</strong> ⭐⭐⭐⭐☆ (4.2)</p>
+                      <p><strong>Completed Jobs:</strong> 27</p>
+                      <p><strong>Rating:</strong> 4.5 / 5.0</p>
+                    </div>
 
-
-      {/* {incomingMessage && (
-        <div style={{
-          zIndex: 1000,
-          position: 'absolute',
-          top: 20,
-          right: 20,
-          background: 'white',
-          border: '1px solid #ccc',
-          borderRadius: '8px',
-          padding: '1rem',
-          zIndex: 1000,
-          boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-        }}>
-          <strong>📨 New message</strong>
-          <p>{incomingMessage.text}</p>
-          <button
-            onClick={() => {
-              setChatWith(incomingMessage.senderId);
-              setIncomingMessage(null);
-            }}
-          >
-            Open Chat
-          </button>
-        </div>
-      )}
-
-      {incomingRequest && (
-        <div className="modal">
-          <h3>New Request</h3>
-          <p>Customer is requesting your help</p>
-          <button onClick={acceptRequest}>Accept</button>
-          <button onClick={rejectRequest}>Reject</button>
-        </div>
-      )} */}
+                    <button
+                      onClick={() => setSelectedProfile(null)}
+                      style={{
+                        marginTop: "10px",
+                        width: "100%",
+                        padding: "8px",
+                        background: "#696969ff",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                )}
 
       {chatWith && user?.uid && (
         <ChatBox
@@ -860,6 +928,9 @@ const rejectRequest = async () => {
           🛎️ {Object.keys(unreadMessages).length} new message(s)
         </div>
       )}
+
+      
+
 
     </div>
   );
