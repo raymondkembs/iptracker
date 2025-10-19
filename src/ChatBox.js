@@ -83,17 +83,6 @@ function ChatBox({ conversationId, recipientId, onClose, userRole = 'customer' }
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      {/* <div className="chatbox-input-area">
-        <input
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') sendMessage(); }}
-          placeholder="Type a message..."
-          className="chatbox-input"
-        />
-        <button onClick={sendMessage} className="chatbox-send-button" title="Send">Send</button>
-      </div> */}
       <div className="chatbox-input-area">
         <textarea
           value={message}

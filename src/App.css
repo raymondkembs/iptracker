@@ -320,8 +320,38 @@ input:checked + .slider:before {
   border-radius: 10px;
   padding: 15px;
   box-shadow: 0 4px 10px rgba(39, 39, 39, 0.15);
-  
 }
+
+.slim-banner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 15px;
+  margin-top: -25px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  width: 100%;
+  background-color: #fff8e1;
+  color: #333;
+  text-decoration: none;
+  font-size: 12px;
+  border-bottom: 1px solid #ddd;
+  transition: background-color 0.2s ease;
+  position: relative;
+}
+
+.slim-banner:hover {
+  background-color: #eaeaea;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+}
+
 
 /* Make it stack naturally on small screens */
 @media (max-width: 768px) {
@@ -337,13 +367,17 @@ input:checked + .slider:before {
 
 /* Responsive Design */
 @media (max-width: 600px) {
+  body{
+    background: #f4f2ee;
+  }
   .box1 {
     width: 100%;
-    border-radius: 0; /* Still no rounding */
+    border-radius: 0 0 10px 10px; /* Still no rounding */
   }
   .box2{
     width: 100%;
     padding: 10px;
+    border-radius: 8px;
   }
   .info-section{
     font-size: 10px;
@@ -351,6 +385,7 @@ input:checked + .slider:before {
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
   }
   .map{
+    z-index: 100;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   }
@@ -387,6 +422,30 @@ input:checked + .slider:before {
     width: 100%;
     background: red;
   }
+  
+  .notification{
+    margin-top: 10px;
+    margin-left: 0;
+  }
+
+  .notification-panel{
+    z-index: 500;
+  }
+  
+  .leaflet-control-zoom {
+    z-index: 500;
+    bottom: -180px;
+    transform: translateY(-50%);
+  }
+
+  .leaflet-control-container {
+    z-index: 500; 
+  }
+
+  /* .message-notification {
+    border-left-color: #17a2b8;
+    font-size: 12px;
+  } */
 }
 
 /* ================================================== */
@@ -484,7 +543,7 @@ input:checked + .slider:before {
   width: 100%;
   height: 100%;
   background: rgba(0,0,0,0.5);
-  z-index: 999;
+  z-index: 1000;
   display: flex;
   justify-content: center;
   align-items: center;

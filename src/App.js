@@ -108,6 +108,7 @@ function App() {
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [requestFeedback, setRequestFeedback] = useState('');
   const [customerNotification, setCustomerNotification] = useState('');
+  const [showModal, setShowModal] = useState(false);
 
   const toggleAvailability = () => {
     setIsAvailable(prev => !prev);
@@ -226,8 +227,6 @@ const handleRoleSelect = (role) => {
       }
       console.log("✅ Role selected:", role);
       console.log("🧭 Mode set to:", role === 'viewer' ? 'track' : 'share');
-
-
   };
 
   useEffect(() => {
@@ -617,7 +616,8 @@ useEffect(() => {
               </div>
             )}
 
-            {Object.keys(unreadMessages).length > 0 && (
+            {/* {showModal && Object.keys(unreadMessages).length > 0 &&(  */}
+            {showModal && (
               <div className="notification message-alert">
                 <strong>Check your chats here</strong>
                 <p>🛎️ You have {Object.keys(unreadMessages).length} unread message(s)</p>
@@ -634,18 +634,17 @@ useEffect(() => {
                       delete updated[firstUnreadSenderId];
                       return updated;
                     });
+
+                    // ✅ Close the modal so it doesn't reopen
+                    setShowModal(false);  
                   }}
+                  
                 >
                   View
                 </button>
               </div>
             )}
 
-            {/* {Object.keys(unreadMessages).length > 0 && (
-              <div className="notification-bell">
-                🛎️ {Object.keys(unreadMessages).length} new message(s)
-              </div>
-            )} */}
 
               {userRole === 'customer' && customerNotification === 'accepted' && (
                 <div
@@ -737,6 +736,16 @@ useEffect(() => {
 
             {/* <div className="other-content"> */}
               <h1>Find a nearby cleaner</h1>
+              <div
+                className="slim-banner"
+                onClick={(e) => { 
+                  if (Object.keys(unreadMessages).length > 0) {
+                    setShowModal(true); 
+                  }
+                }}
+              >
+                🛎️ You have {Object.keys(unreadMessages).length} unread message(s)
+              </div>
 
         <div className="box2">
           
@@ -868,52 +877,50 @@ useEffect(() => {
                 {selectedRole && selectedRole !== 'viewer' && currentCoords && (
                   <p><strong>Your location:</strong> {currentCoords.lat}, {currentCoords.lng}</p>
                 )}
-              </div>
-            
-          </div>
-                
+              </div>            
+          </div>              
       </div>
-                {selectedProfile && (
-                  <div
-                    className="profile-popup"
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <img
-                        src={selectedProfile.photoURL || "https://images.pexels.com/photos/34125457/pexels-photo-34125457.jpeg"}
-                        alt={selectedProfile.name}
-                        style={{ width: "60px", height: "60px", borderRadius: "50%", objectFit: "cover" }}
-                      />
-                      <div>
-                        <p>{selectedProfile.name || "Unnamed"}</p>
-                        <div style={{ fontSize: "14px", color: "#555" }}>
-                          {selectedProfile.role || "Cleaner"}
-                        </div>
-                      </div>
-                    </div>
+        {selectedProfile && (
+          <div
+            className="profile-popup"
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <img
+                src={selectedProfile.photoURL || "https://images.pexels.com/photos/34125457/pexels-photo-34125457.jpeg"}
+                alt={selectedProfile.name}
+                style={{ width: "60px", height: "60px", borderRadius: "50%", objectFit: "cover" }}
+              />
+              <div>
+                <p>{selectedProfile.name || "Unnamed"}</p>
+                <div style={{ fontSize: "14px", color: "#555" }}>
+                  {selectedProfile.role || "Cleaner"}
+                </div>
+              </div>
+            </div>
 
-                    <div style={{ marginTop: "10px" }}>
-                      <p><strong>Reviews:</strong> ⭐⭐⭐⭐☆ (4.2)</p>
-                      <p><strong>Completed Jobs:</strong> 27</p>
-                      <p><strong>Rating:</strong> 4.5 / 5.0</p>
-                    </div>
+            <div style={{ marginTop: "10px" }}>
+              <p><strong>Reviews:</strong> ⭐⭐⭐⭐☆ (4.2)</p>
+              <p><strong>Completed Jobs:</strong> 27</p>
+              <p><strong>Rating:</strong> 4.5 / 5.0</p>
+            </div>
 
-                    <button
-                      onClick={() => setSelectedProfile(null)}
-                      style={{
-                        marginTop: "10px",
-                        width: "100%",
-                        padding: "8px",
-                        background: "#696969ff",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Close
-                    </button>
-                  </div>
-                )}
+            <button
+              onClick={() => setSelectedProfile(null)}
+              style={{
+                marginTop: "10px",
+                width: "100%",
+                padding: "8px",
+                background: "#696969ff",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+              }}
+            >
+              Close
+            </button>
+          </div>
+        )}
 
       {chatWith && user?.uid && (
         <ChatBox
@@ -923,14 +930,11 @@ useEffect(() => {
         />
       )}
 
-      {Object.keys(unreadMessages).length > 0 && (
+      {/* {Object.keys(unreadMessages).length > 0 && (
         <div className="notification-bell">
           🛎️ {Object.keys(unreadMessages).length} new message(s)
         </div>
-      )}
-
-      
-
+      )} */}
 
     </div>
   );
